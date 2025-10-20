@@ -3,7 +3,6 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from google_auth_oauthlib.flow import InstalledAppFlow
 import io
-import json
 
 st.set_page_config(page_title="DropZone: Upload Anything", page_icon="📤", layout="centered")
 st.title("📤 DropZone: Upload Anything")
@@ -11,7 +10,6 @@ st.write("Upload images, videos, documents, or any file directly to your Google 
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
-# Load OAuth client from st.secrets
 flow_data = {
     "installed": {
         "client_id": st.secrets["oauth"]["client_id"],
@@ -22,25 +20,15 @@ flow_data = {
     }
 }
 
-# Run console-based OAuth flow
 flow = InstalledAppFlow.from_client_config(flow_data, SCOPES)
-auth_url, _ = flow.authorization_url(prompt="consent")
-st.markdown(f"🔗 [Click this link to authorize the app]({auth_url})")
-code = st.text_input("Enter the authorization code here:")
-
-if code:
-    flow.fetch_token(code=code)
-    creds = flow.credentials
-    drive_service = build('drive', 'v3', credentials=creds)
-else:
-    st.stop()
+creds = flow.run_console()
+drive_service = build('drive', 'v3', credentials=creds)
 
 folder_id = st.text_input("📂 Enter Google Drive Folder ID")
 if not folder_id:
     st.info("Enter folder ID to upload files.")
     st.stop()
 
-file_type = st.radio("Select type of upload:", ("📷 Image", "🎞 Video", "📄 Document", "📁 Other File"), horizontal=True)
 uploaded_file = st.file_uploader("Drag & drop a file or click to browse", type=None)
 
 def upload_to_drive(file, folder_id):
