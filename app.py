@@ -11,10 +11,6 @@ st.write("Upload images, videos, documents, or any file directly to your Google 
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
-if "oauth" not in st.secrets:
-    st.error("Please add your OAuth credentials to Streamlit secrets under [oauth]")
-    st.stop()
-
 flow_data = {
     "installed": {
         "client_id": st.secrets["oauth"]["client_id"],
@@ -27,7 +23,6 @@ flow_data = {
 
 token_path = "token.pkl"
 creds = None
-
 if os.path.exists(token_path):
     with open(token_path, 'rb') as token_file:
         creds = pickle.load(token_file)
