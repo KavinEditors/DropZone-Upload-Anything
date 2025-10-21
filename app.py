@@ -34,9 +34,26 @@ def upload_to_dropbox(file, dropbox_path):
     except Exception as e:
         st.error(f"❌ Upload failed: {e}")
 
-# Sidebar: Select upload type
-st.sidebar.title("Select Upload Type")
-option = st.sidebar.radio("Choose type", ["Upload Pic", "Upload Vid", "Upload Doc", "Upload Other Files"])
+# Layout: fixed left menu and main area
+menu_col, content_col = st.columns([1, 3])
+
+with menu_col:
+    st.markdown("### Select Upload Type")
+    # Options with emoji
+    option = st.radio(
+        "",
+        ["📸 Upload Pic", "🎬 Upload Vid", "📄 Upload Doc", "📂 Upload Other Files"]
+    )
+
+# Map emoji options back to keys
+option_map = {
+    "📸 Upload Pic": "Upload Pic",
+    "🎬 Upload Vid": "Upload Vid",
+    "📄 Upload Doc": "Upload Doc",
+    "📂 Upload Other Files": "Upload Other Files"
+}
+
+current_option = option_map[option]
 
 # File types for each option
 file_types = {
@@ -46,15 +63,14 @@ file_types = {
     "Upload Other Files": None  # all types
 }
 
-# Multiple file uploader
-uploaded_files = st.file_uploader(
-    f"Choose files to upload ({option})",
-    type=file_types[option],
-    key=option,
-    accept_multiple_files=True
-)
+with content_col:
+    uploaded_files = st.file_uploader(
+        f"Choose files to upload ({current_option})",
+        type=file_types[current_option],
+        key=current_option,
+        accept_multiple_files=True
+    )
 
-# Upload all button
-if uploaded_files and st.button("Upload All Selected Files"):
-    for file in uploaded_files:
-        upload_to_dropbox(file, "/" + file.name)
+    if uploaded_files and st.button("Upload All Selected Files"):
+        for file in uploaded_files:
+            upload_to_dropbox(file, "/" + file.name)
