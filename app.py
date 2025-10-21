@@ -6,17 +6,17 @@ st.set_page_config(page_title="📤 DropZone: Upload Anything", layout="wide")
 st.title("📤 DropZone: Upload Anything")
 st.write("Upload images, videos, documents, or any file directly to your Dropbox folder.")
 
-# Initialize Dropbox client
+# Dropbox client
 dbx = dropbox.Dropbox(st.secrets["dropbox"]["access_token"])
 
-# Upload function with progress
+# File upload function with progress bar
 def upload_to_dropbox(file, dropbox_path):
     try:
         file_size = len(file.read())
-        file.seek(0)
+        file.seek(0)  # Reset pointer after reading size
 
-        chunk_size = 4 * 1024 * 1024  # 4MB
-        upload_session_start_result = dbx.files_upload_session_start(file.read(min(chunk_size, file_size)))
+        chunk_size = 4 * 1024 * 1024  # 4MB chunks
+        upload_session_start_result = dbx.files_upload_session_start(file.read(chunk_size))
         cursor = dropbox.files.UploadSessionCursor(session_id=upload_session_start_result.session_id,
                                                    offset=file.tell())
         commit = dropbox.files.CommitInfo(path=dropbox_path, mode=dropbox.files.WriteMode("overwrite"))
@@ -34,40 +34,28 @@ def upload_to_dropbox(file, dropbox_path):
     except Exception as e:
         st.error(f"❌ Upload failed: {e}")
 
-# Horizontal radio options for upload type
-option = st.radio(
-    "Select Upload Type",
-    ["📸 Upload Pic", "🎬 Upload Vid", "📄 Upload Doc", "📂 Upload Other Files"],
-    horizontal=True
-)
+# Sidebar for options
+st.sidebar.title("Select Upload Type")
+option = st.sidebar.radio("Choose type", ["Upload Pic", "Upload Vid", "Upload Doc", "Upload Other Files"])
 
-# Map emoji options to internal keys
-option_map = {
-    "📸 Upload Pic": "Upload Pic",
-    "🎬 Upload Vid": "Upload Vid",
-    "📄 Upload Doc": "Upload Doc",
-    "📂 Upload Other Files": "Upload Other Files"
-}
-
-current_option = option_map[option]
-
-# Allowed file types
+# Configure file types per option
 file_types = {
     "Upload Pic": ["png", "jpg", "jpeg", "gif"],
     "Upload Vid": ["mp4", "mkv", "mov"],
     "Upload Doc": ["pdf", "docx", "pptx", "txt"],
-    "Upload Other Files": None
+    "Upload Other Files": None  # allow all
 }
 
-# File uploader
-uploaded_files = st.file_uploader(
-    f"Choose files to upload ({current_option})",
-    type=file_types[current_option],
-    key=current_option,
-    accept_multiple_files=True
-)
+uploaded_file = st.file_uploader(f"Choose a file to upload ({option})", type=file_types[option], key=option)
 
-# Upload all button
-if uploaded_files and st.button("Upload All Selected Files"):
-    for file in uploaded_files:
-        upload_to_dropbox(file, "/" + file.name)
+# Upload button
+if uploaded_file:
+    if st.button(f"Upload {uploaded_file.name}"):
+        folder_map = {
+            "Upload Pic": "/Images/",
+            "Upload Vid": "/Videos/",
+            "Upload Doc": "/Docs/",
+            "Upload Other Files": "/Other/"
+        }
+        upload_to_dropbox(uploaded_file, folder_map[option] + uploaded_file.name)
+        
