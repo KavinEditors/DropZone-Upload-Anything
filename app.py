@@ -13,9 +13,9 @@ dbx = dropbox.Dropbox(st.secrets["dropbox"]["access_token"])
 def upload_to_dropbox(file, dropbox_path):
     try:
         file_size = len(file.read())
-        file.seek(0)  # reset pointer
+        file.seek(0)
 
-        chunk_size = 4 * 1024 * 1024  # 4MB chunks
+        chunk_size = 4 * 1024 * 1024  # 4MB
         upload_session_start_result = dbx.files_upload_session_start(file.read(min(chunk_size, file_size)))
         cursor = dropbox.files.UploadSessionCursor(session_id=upload_session_start_result.session_id,
                                                    offset=file.tell())
@@ -34,20 +34,14 @@ def upload_to_dropbox(file, dropbox_path):
     except Exception as e:
         st.error(f"❌ Upload failed: {e}")
 
-# Horizontal menu for upload type
-menu_items = ["📸 Upload Pic", "🎬 Upload Vid", "📄 Upload Doc", "📂 Upload Other Files"]
-cols = st.columns(len(menu_items))
-selected_option = None
+# Horizontal radio options for upload type
+option = st.radio(
+    "Select Upload Type",
+    ["📸 Upload Pic", "🎬 Upload Vid", "📄 Upload Doc", "📂 Upload Other Files"],
+    horizontal=True
+)
 
-for i, item in enumerate(menu_items):
-    if cols[i].button(item):
-        selected_option = item
-
-# Default selection
-if selected_option is None:
-    selected_option = menu_items[0]
-
-# Map emoji options to keys
+# Map emoji options to internal keys
 option_map = {
     "📸 Upload Pic": "Upload Pic",
     "🎬 Upload Vid": "Upload Vid",
@@ -55,14 +49,14 @@ option_map = {
     "📂 Upload Other Files": "Upload Other Files"
 }
 
-current_option = option_map[selected_option]
+current_option = option_map[option]
 
-# File types for each option
+# Allowed file types
 file_types = {
     "Upload Pic": ["png", "jpg", "jpeg", "gif"],
     "Upload Vid": ["mp4", "mkv", "mov"],
     "Upload Doc": ["pdf", "docx", "pptx", "txt"],
-    "Upload Other Files": None  # all types
+    "Upload Other Files": None
 }
 
 # File uploader
