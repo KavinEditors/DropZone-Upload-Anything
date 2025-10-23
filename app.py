@@ -1,40 +1,37 @@
 import streamlit as st
 import dropbox
+import os
+from mimetypes import guess_type
 
 st.set_page_config(page_title="📤 DropZone: Upload Anything", layout="wide")
-
 st.title("📤 DropZone: Upload Anything")
-st.write("Upload images, videos, documents, or any file directly to your Dropbox folder.")
 
-# Initialize Dropbox client
-dbx = dropbox.Dropbox(st.secrets["dropbox"]["access_token"])
+dbx = dropbox.Dropbox(
+    oauth2_refresh_token=st.secrets["dropbox_refresh_token"],
+    app_key=st.secrets["dropbox_app_key"],
+    app_secret=st.secrets["dropbox_app_secret"]
+)
 
-def upload_to_dropbox(file, dropbox_path):
-    try:
-        dbx.files_upload(file.read(), dropbox_path, mode=dropbox.files.WriteMode("overwrite"))
-        st.success(f"✅ Uploaded to Dropbox: {dropbox_path}")
-    except Exception as e:
-        st.error(f"❌ Upload failed: {e}")
+folders = {"Docs": [".pdf", ".doc", ".docx", ".txt", ".ppt", ".pptx", ".xls", ".xlsx"],
+           "Images": [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff"],
+           "Videos": [".mp4", ".mov", ".avi", ".mkv", ".flv", ".wmv"],
+           "Other": []}
 
-# Tabs for different file types
-tabs = st.tabs(["Upload Pic", "Upload Vid", "Upload Doc", "Upload Other Files"])
+uploaded_files = st.file_uploader("Drop your files here", type=None, accept_multiple_files=True)
 
-with tabs[0]:
-    uploaded_file = st.file_uploader("Choose an image", type=["png", "jpg", "jpeg", "gif"], key="pic", accept_multiple_files=False)
-    if uploaded_file:
-        upload_to_dropbox(uploaded_file, f"/Images/{uploaded_file.name}")
-
-with tabs[1]:
-    uploaded_file = st.file_uploader("Choose a video", type=["mp4", "mkv", "mov"], key="vid", accept_multiple_files=False)
-    if uploaded_file:
-        upload_to_dropbox(uploaded_file, f"/Videos/{uploaded_file.name}")
-
-with tabs[2]:
-    uploaded_file = st.file_uploader("Choose a document", type=["pdf", "docx", "pptx", "txt"], key="doc", accept_multiple_files=False)
-    if uploaded_file:
-        upload_to_dropbox(uploaded_file, f"/Docs/{uploaded_file.name}")
-
-with tabs[3]:
-    uploaded_file = st.file_uploader("Choose any file", type=None, key="other", accept_multiple_files=False)
-    if uploaded_file:
-        upload_to_dropbox(uploaded_file, f"/Other/{uploaded_file.name}")
+if uploaded_files:
+    status_text = st.empty()
+    for file in uploaded_files:
+        name = file.name
+        ext = os.path.splitext(name)[1].lower()
+        dest_folder = "Other"
+        for key, val in folders.items():
+            if ext in val:
+                dest_folder = key
+                break
+        dest_path = f"/{dest_folder}/{name}"
+        try:
+            dbx.files_upload(file.getbuffer(), dest_path, mode=dropbox.files.WriteMode.overwrite)
+            status_text.text(f"✅ Uploaded: {name} → {dest_folder}")
+        except dropbox.exceptions.ApiError as e:
+            status_text.text(f"❌ Upload failed: {name} | {e}")
