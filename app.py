@@ -1,7 +1,6 @@
 import streamlit as st
 import dropbox
 import os
-from mimetypes import guess_type
 
 st.set_page_config(page_title="📤 DropZone: Upload Anything", layout="wide")
 st.title("📤 DropZone: Upload Anything")
@@ -24,14 +23,10 @@ if uploaded_files:
     for file in uploaded_files:
         name = file.name
         ext = os.path.splitext(name)[1].lower()
-        dest_folder = "Other"
-        for key, val in folders.items():
-            if ext in val:
-                dest_folder = key
-                break
+        dest_folder = next((k for k, v in folders.items() if ext in v), "Other")
         dest_path = f"/{dest_folder}/{name}"
         try:
-            dbx.files_upload(file.getbuffer(), dest_path, mode=dropbox.files.WriteMode.overwrite)
+            dbx.files_upload(bytes(file.getbuffer()), dest_path, mode=dropbox.files.WriteMode.overwrite)
             status_text.text(f"✅ Uploaded: {name} → {dest_folder}")
         except dropbox.exceptions.ApiError as e:
             status_text.text(f"❌ Upload failed: {name} | {e}")
